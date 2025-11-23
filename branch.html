@@ -290,6 +290,8 @@
       $list.empty();
       $total.text('총 ' + list.length + '개의 지점이 검색되었습니다');
 
+      console.log('🎨 renderList 실행:', list.length, '개 지점');
+
       if (!list.length) {
         $list.append('<li class="branch-item">등록된 지점이 없습니다.</li>');
         return;
@@ -308,14 +310,19 @@
           document.querySelectorAll('.branch-item').forEach(el => el.classList.remove('active'));
           this.classList.add('active');
 
-          if (b.lat && b.lng) {
-            moveMap(b.lat, b.lng);
-          } else if (b.addr) {
-            geocoder.addressSearch(b.addr, function(result, status) {
+          if (b.lat && b.lng && b.lat !== '' && b.lng !== '') {
+            moveMap(parseFloat(b.lat), parseFloat(b.lng));
+          } else if (b.addr || b.fullAddr) {
+            const searchAddr = b.fullAddr || b.addr;
+            console.log('🔍 주소로 좌표 검색:', searchAddr);
+            geocoder.addressSearch(searchAddr, function(result, status) {
               if (status === kakao.maps.services.Status.OK) {
                 const lat = parseFloat(result[0].y);
                 const lng = parseFloat(result[0].x);
+                console.log('✅ 좌표 찾음:', lat, lng);
                 moveMap(lat, lng);
+              } else {
+                console.error('❌ 좌표 검색 실패:', searchAddr, status);
               }
             });
           }
@@ -325,14 +332,19 @@
 
       const first = list[0];
       if (first) {
-        if (first.lat && first.lng) {
-          moveMap(first.lat, first.lng);
-        } else if (first.addr) {
-          geocoder.addressSearch(first.addr, function(result, status) {
+        if (first.lat && first.lng && first.lat !== '' && first.lng !== '') {
+          moveMap(parseFloat(first.lat), parseFloat(first.lng));
+        } else if (first.addr || first.fullAddr) {
+          const searchAddr = first.fullAddr || first.addr;
+          console.log('🔍 첫 번째 지점 주소로 좌표 검색:', searchAddr);
+          geocoder.addressSearch(searchAddr, function(result, status) {
             if (status === kakao.maps.services.Status.OK) {
               const lat = parseFloat(result[0].y);
               const lng = parseFloat(result[0].x);
+              console.log('✅ 첫 번째 지점 좌표:', lat, lng);
               moveMap(lat, lng);
+            } else {
+              console.error('❌ 첫 번째 지점 좌표 검색 실패:', searchAddr, status);
             }
           });
         }
