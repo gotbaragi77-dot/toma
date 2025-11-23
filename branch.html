@@ -193,15 +193,44 @@
       marker.setPosition(pos);
     }
 
-    // ✅ admin/branch_data.json 불러오기
+    // ✅ localStorage + admin/branch_data.json 불러오기
     function loadBranches() {
+      const STORAGE_KEY = 'branchList';
+      let localData = [];
+
+      // 1. localStorage에서 먼저 읽기
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        localData = Array.isArray(parsed) ? parsed : [];
+      } catch(e) {
+        localData = [];
+      }
+
+      // 2. JSON 파일도 시도
       return fetch("admin/branch_data.json?" + Date.now())
         .then(res => {
-          if (!res.ok) return [];
+          if (!res.ok) return localData;
           return res.json();
         })
-        .then(data => Array.isArray(data) ? data : [])
-        .catch(() => []);
+        .then(data => {
+          if (!Array.isArray(data)) return localData;
+
+          // JSON 파일과 localStorage 데이터 병합 (중복 제거)
+          const allBranches = [...localData, ...data];
+          const uniqueBranches = [];
+          const ids = new Set();
+
+          allBranches.forEach(b => {
+            if (!ids.has(b.id)) {
+              ids.add(b.id);
+              uniqueBranches.push(b);
+            }
+          });
+
+          return uniqueBranches;
+        })
+        .catch(() => localData); // 오류 시 localStorage 데이터 반환
     }
 
     function buildSidoGugun(list) {
