@@ -65,12 +65,50 @@
 <script>
   const STORAGE_KEY = 'branchList';
   let branches = [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    branches = Array.isArray(parsed) ? parsed : [];
-  } catch(e) { branches = []; }
   const tbody = document.getElementById('branchTbody');
+
+  // 데이터 로드 함수
+  async function loadBranches() {
+    // 1. localStorage에서 먼저 읽기
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      branches = Array.isArray(parsed) ? parsed : [];
+    } catch(e) {
+      branches = [];
+    }
+
+    // 2. JSON 파일도 시도 (서버에 있는 경우)
+    try {
+      const response = await fetch('admin/branch_data.json?' + Date.now());
+      if (response.ok) {
+        const jsonData = await response.json();
+        if (Array.isArray(jsonData)) {
+          // JSON 파일과 localStorage 데이터 병합 (중복 제거)
+          const allBranches = [...branches, ...jsonData];
+          const uniqueBranches = [];
+          const ids = new Set();
+
+          allBranches.forEach(b => {
+            if (!ids.has(b.id)) {
+              ids.add(b.id);
+              uniqueBranches.push(b);
+            }
+          });
+
+          branches = uniqueBranches;
+          // localStorage에도 업데이트
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(branches));
+        }
+      }
+    } catch(e) {
+      // JSON 파일이 없으면 localStorage 데이터만 사용
+      console.log('JSON 파일 로드 실패, localStorage 데이터 사용');
+    }
+
+    renderList();
+  }
+
   function renderList() {
     tbody.innerHTML = '';
     if (!branches.length) {
@@ -91,7 +129,7 @@
         '<td>' + (idx+1) + '</td>' +
         '<td>' + (b.category || '') + '</td>' +
         '<td>' + (b.name || '') + '</td>' +
-        '<td>' + (b.addr || '') + '</td>' +
+        '<td>' + (b.fullAddr || b.addr || '') + '</td>' +
         '<td>' + (b.tel || '') + '</td>' +
         '<td>' + (b.date || '') + '</td>';
       tr.addEventListener('click', function() {
@@ -100,7 +138,9 @@
       tbody.appendChild(tr);
     });
   }
-  renderList();
+
+  // 페이지 로드시 데이터 로드
+  loadBranches();
 </script>
 </body>
 </html>

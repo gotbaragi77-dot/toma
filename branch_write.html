@@ -24,9 +24,49 @@
     .row-label { font-size:14px; font-weight:600; margin-bottom:6px; }
     .input { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; }
 
-    .btn { padding:8px 14px; border-radius:6px; cursor:pointer; }
+    .btn { padding:8px 14px; border-radius:6px; cursor:pointer; border:none; }
     .btn-primary { background:#2563eb; color:#fff; }
     .btn-gray { background:#e5e7eb; }
+
+    /* 주소검색 팝업 레이어 */
+    #postcodeLayer {
+      display:none;
+      position:fixed;
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      background:rgba(0,0,0,0.5);
+      z-index:9999;
+    }
+    #postcodeWrap {
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%, -50%);
+      width:90%;
+      max-width:500px;
+      height:500px;
+      background:#fff;
+      border-radius:8px;
+      overflow:hidden;
+      box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    }
+    #postcodeClose {
+      position:absolute;
+      top:10px;
+      right:10px;
+      width:40px;
+      height:40px;
+      background:#fff;
+      border:1px solid #ddd;
+      border-radius:50%;
+      cursor:pointer;
+      z-index:10000;
+      font-size:20px;
+      line-height:38px;
+      text-align:center;
+    }
   </style>
 </head>
 
@@ -64,11 +104,11 @@
       <!-- 주소 -->
       <div class="row-line">
         <div class="row-label">주소</div>
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
           <input type="text" id="addr" class="input" placeholder="주소 검색을 클릭하세요" readonly />
           <button class="btn btn-gray" onclick="searchAddress()">주소검색</button>
         </div>
-        <input type="text" id="addrDetail" class="input" placeholder="상세주소 입력">
+        <input type="text" id="addrDetail" class="input" placeholder="상세주소 입력" style="margin-top:8px;">
       </div>
 
       <!-- 연락처 -->
@@ -77,9 +117,11 @@
         <input type="text" id="tel" class="input" placeholder="예) 031-000-0000" />
       </div>
 
-      <!-- 숨겨진 좌표 -->
+      <!-- 숨겨진 필드 -->
       <input type="hidden" id="lat">
       <input type="hidden" id="lng">
+      <input type="hidden" id="sido">
+      <input type="hidden" id="gugun">
 
       <!-- 버튼 -->
       <div style="text-align:right;">
@@ -92,42 +134,124 @@
 
 </div>
 
+<!-- 주소검색 팝업 레이어 -->
+<div id="postcodeLayer">
+  <div id="postcodeWrap">
+    <div id="postcodeClose" onclick="closePostcode()">×</div>
+    <div id="postcodeEmbed" style="width:100%; height:100%;"></div>
+  </div>
+</div>
+
 <script>
+const STORAGE_KEY = 'branchList';
 let geocoder = new kakao.maps.services.Geocoder();
 
 /* 주소 검색 */
 function searchAddress() {
   new daum.Postcode({
     oncomplete: function(data) {
-
+      // 주소 입력
       document.getElementById("addr").value = data.address;
 
-      /* 방금 입력한 주소 → 좌표 변환 */
+      // 시/도, 구/군 분리
+      let sido = data.sido || '';
+      let gugun = data.sigungu || '';
+
+      document.getElementById("sido").value = sido;
+      document.getElementById("gugun").value = gugun;
+
+      // 좌표 변환
       geocoder.addressSearch(data.address, function(result, status) {
         if (status === kakao.maps.services.Status.OK) {
           document.getElementById("lat").value = result[0].y;
           document.getElementById("lng").value = result[0].x;
         }
       });
-    }
-  }).open();
+
+      // 팝업 닫기
+      closePostcode();
+    },
+    width: '100%',
+    height: '100%'
+  }).embed(document.getElementById('postcodeEmbed'));
+
+  // 팝업 표시
+  document.getElementById('postcodeLayer').style.display = 'block';
+}
+
+/* 팝업 닫기 */
+function closePostcode() {
+  document.getElementById('postcodeLayer').style.display = 'none';
+  document.getElementById('postcodeEmbed').innerHTML = '';
 }
 
 /* 저장 */
 function saveBranch() {
+  const category = document.getElementById('category');
+  const name = document.getElementById('name');
+  const addr = document.getElementById('addr');
+  const addrDetail = document.getElementById('addrDetail');
+  const tel = document.getElementById('tel');
+  const lat = document.getElementById('lat');
+  const lng = document.getElementById('lng');
+  const sido = document.getElementById('sido');
+  const gugun = document.getElementById('gugun');
+
+  // 유효성 검사
+  if (!category.value) {
+    alert('카테고리를 선택해주세요.');
+    return;
+  }
+  if (!name.value.trim()) {
+    alert('지점명을 입력해주세요.');
+    name.focus();
+    return;
+  }
+  if (!addr.value.trim()) {
+    alert('주소를 검색해주세요.');
+    return;
+  }
+  if (!tel.value.trim()) {
+    alert('연락처를 입력해주세요.');
+    tel.focus();
+    return;
+  }
+
+  const now = new Date();
+  const dateStr = now.getFullYear() + '-' +
+                  String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                  String(now.getDate()).padStart(2, '0');
+
   const data = {
     id: Date.now(),
     category: category.value,
-    name: name.value,
-    addr: addr.value,
-    addrDetail: addrDetail.value,
-    fullAddr: addr.value + " " + addrDetail.value,
-    tel: tel.value,
+    name: name.value.trim(),
+    addr: addr.value.trim(),
+    addrDetail: addrDetail.value.trim(),
+    fullAddr: addr.value.trim() + (addrDetail.value.trim() ? ' ' + addrDetail.value.trim() : ''),
+    tel: tel.value.trim(),
     lat: lat.value,
-    lng: lng.value
+    lng: lng.value,
+    sido: sido.value,
+    gugun: gugun.value,
+    date: dateStr
   };
 
-  fetch("save_branch.php", {
+  // 1. localStorage에 저장
+  let branches = [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    branches = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(branches)) branches = [];
+  } catch(e) {
+    branches = [];
+  }
+
+  branches.push(data);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(branches));
+
+  // 2. 서버에 JSON 파일로 저장 (PHP)
+  fetch("admin/save_branch.php", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
@@ -136,8 +260,27 @@ function saveBranch() {
   .then(() => {
     alert("저장되었습니다");
     location.href = "branch_list.html";
+  })
+  .catch(() => {
+    // PHP 파일이 없어도 localStorage에는 저장되었으므로 진행
+    alert("저장되었습니다");
+    location.href = "branch_list.html";
   });
 }
+
+// ESC 키로 팝업 닫기
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closePostcode();
+  }
+});
+
+// 팝업 배경 클릭시 닫기
+document.getElementById('postcodeLayer').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closePostcode();
+  }
+});
 </script>
 
 </body>
