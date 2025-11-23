@@ -348,17 +348,32 @@
     $('#searchBtn').on('click', function() { renderList(); });
     $('#sidoFilter, #gugunFilter').on('change', function() { renderList(); });
 
-    // ✅ 초기 실행: 지도 + JSON 불러오기
-    initMap();
-    console.log('🚀 페이지 로드 시작');
-    loadBranches().then(list => {
-      console.log('📊 최종 branches 배열:', list);
-      console.log('📊 branches 개수:', list.length);
-      branches = list;
-      buildSidoGugun(branches);
-      renderList();
-      console.log('✨ renderList 완료');
-    });
+    // ✅ 초기 실행: 카카오맵 로드 대기 후 실행
+    function init() {
+      console.log('🚀 페이지 로드 시작');
+      initMap();
+      loadBranches().then(list => {
+        console.log('📊 최종 branches 배열:', list);
+        console.log('📊 branches 개수:', list.length);
+        branches = list;
+        buildSidoGugun(branches);
+        renderList();
+        console.log('✨ renderList 완료');
+      });
+    }
+
+    // 카카오맵 API 로드 대기
+    if (typeof kakao !== 'undefined' && kakao.maps) {
+      init();
+    } else {
+      // 카카오맵 스크립트 로드 대기
+      const checkKakao = setInterval(() => {
+        if (typeof kakao !== 'undefined' && kakao.maps) {
+          clearInterval(checkKakao);
+          init();
+        }
+      }, 100);
+    }
   });
 </script>
 </body>
