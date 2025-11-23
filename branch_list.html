@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>지점 관리 - 리스트</title>
+  <link rel="stylesheet" href="https://aplusark.mycafe24.com/assets/css/admin.css" />
+  <style>
+    body { font-family:'Pretendard','Noto Sans KR',sans-serif; }
+    .admin-layout { display:flex; min-height:100vh; }
+    .sidebar { width:220px; background:#111827; color:#fff; padding:24px 0; }
+    .sidebar-logo { padding:0 24px 24px; }
+    .sidebar-logo img { max-width:150px; }
+    .sidebar-menu { list-style:none; margin:0; padding:0; }
+    .sidebar-menu li a { display:block; padding:10px 24px; font-size:14px; color:#9ca3af; text-decoration:none; }
+    .sidebar-menu li.active a, .sidebar-menu li a:hover { color:#fff; background:#1f2937; }
+    .content { flex:1; background:#f3f4f6; padding:32px; }
+    .page-header { margin-bottom:20px; }
+    .page-title { font-size:20px; font-weight:700; margin-bottom:4px; }
+    .page-desc { font-size:13px; color:#6b7280; }
+    .card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:left; }
+    th { background:#f9fafb; font-weight:600; }
+    tr:hover td { background:#f3f4ff; cursor:pointer; }
+    .btn-primary { display:inline-block; padding:8px 14px; border-radius:6px; border:none; background:#2563eb; color:#fff; font-size:13px; cursor:pointer; text-decoration:none; }
+    .text-right { text-align:right; }
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><img src="https://aplusark.mycafe24.com/assets/images/logo.png" alt="광성메디멕스" /></div>
+    <ul class="sidebar-menu">
+      <li><a href="notice_list.html">공지사항</a></li>
+      <li><a href="news_list.html">광성소식</a></li>
+      <li><a href="pru_list.html">제품관리</a></li>
+      <li class="active"><a href="branch_list.html">지점 관리</a></li>
+    </ul>
+  </aside>
+  <main class="content">
+    <div class="page-header">
+      <div class="page-title">지점 관리</div>
+      <div class="page-desc">지점 정보를 등록하고 수정할 수 있습니다.</div>
+    </div>
+    <div class="card">
+      <div class="text-right" style="margin-bottom:10px;">
+        <button class="btn-primary" onclick="location.href='branch_write.html'">지점 등록</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:80px;">번호</th>
+            <th style="width:120px;">카테고리</th>
+            <th>지점명</th>
+            <th>주소</th>
+            <th style="width:120px;">연락처</th>
+            <th style="width:120px;">등록일</th>
+          </tr>
+        </thead>
+        <tbody id="branchTbody"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+<script>
+  const STORAGE_KEY = 'branchList';
+  let branches = [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    branches = Array.isArray(parsed) ? parsed : [];
+  } catch(e) { branches = []; }
+  const tbody = document.getElementById('branchTbody');
+  function renderList() {
+    tbody.innerHTML = '';
+    if (!branches.length) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 6;
+      td.textContent = '등록된 지점이 없습니다.';
+      td.style.textAlign = 'center';
+      td.style.padding = '30px 0';
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+    const list = branches.slice().sort((a,b) => b.id - a.id);
+    list.forEach((b, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + (idx+1) + '</td>' +
+        '<td>' + (b.category || '') + '</td>' +
+        '<td>' + (b.name || '') + '</td>' +
+        '<td>' + (b.addr || '') + '</td>' +
+        '<td>' + (b.tel || '') + '</td>' +
+        '<td>' + (b.date || '') + '</td>';
+      tr.addEventListener('click', function() {
+        location.href = 'branch_view.html?id=' + encodeURIComponent(b.id);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+  renderList();
+</script>
+</body>
+</html>
