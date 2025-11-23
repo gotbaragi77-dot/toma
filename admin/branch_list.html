@@ -80,7 +80,7 @@
 
     // 2. JSON 파일도 시도 (서버에 있는 경우)
     try {
-      const response = await fetch('admin/branch_data.json?' + Date.now());
+      const response = await fetch('branch_data.json?' + Date.now());
       if (response.ok) {
         const jsonData = await response.json();
         if (Array.isArray(jsonData)) {

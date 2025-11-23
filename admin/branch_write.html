@@ -251,7 +251,7 @@ function saveBranch() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(branches));
 
   // 2. 서버에 JSON 파일로 저장 (PHP)
-  fetch("admin/save_branch.php", {
+  fetch("save_branch.php", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
