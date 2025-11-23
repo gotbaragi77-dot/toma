@@ -176,8 +176,7 @@
 
     let branches = [];                       // 전체 지점 데이터
     const mapContainer = document.getElementById('map');
-    let map, marker;
-    let geocoder = new kakao.maps.services.Geocoder();
+    let map, marker, geocoder;
 
     function initMap() {
       const center = new kakao.maps.LatLng(37.5665, 126.9780);
@@ -185,6 +184,7 @@
       map = new kakao.maps.Map(mapContainer, options);
       marker = new kakao.maps.Marker({ position: center });
       marker.setMap(map);
+      geocoder = new kakao.maps.services.Geocoder(); // 지도 초기화 후 geocoder 생성
     }
 
     function moveMap(lat, lng) {
