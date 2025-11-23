@@ -201,20 +201,32 @@
       // 1. localStorage에서 먼저 읽기
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
+        console.log('📦 localStorage 원본 데이터:', raw);
         const parsed = raw ? JSON.parse(raw) : [];
         localData = Array.isArray(parsed) ? parsed : [];
+        console.log('✅ localStorage 파싱 완료:', localData.length, '개 지점');
+        if (localData.length > 0) {
+          console.log('첫 번째 지점 샘플:', localData[0]);
+        }
       } catch(e) {
+        console.error('❌ localStorage 읽기 실패:', e);
         localData = [];
       }
 
       // 2. JSON 파일도 시도
       return fetch("admin/branch_data.json?" + Date.now())
         .then(res => {
+          console.log('🌐 JSON 파일 응답:', res.status, res.ok);
           if (!res.ok) return localData;
           return res.json();
         })
         .then(data => {
-          if (!Array.isArray(data)) return localData;
+          if (!Array.isArray(data)) {
+            console.log('⚠️ JSON 데이터 없음, localStorage 사용');
+            return localData;
+          }
+
+          console.log('📄 JSON 파일 데이터:', data.length, '개 지점');
 
           // JSON 파일과 localStorage 데이터 병합 (중복 제거)
           const allBranches = [...localData, ...data];
@@ -228,9 +240,14 @@
             }
           });
 
+          console.log('🔀 병합 완료:', uniqueBranches.length, '개 지점');
           return uniqueBranches;
         })
-        .catch(() => localData); // 오류 시 localStorage 데이터 반환
+        .catch((err) => {
+          console.error('❌ JSON 파일 로드 실패:', err);
+          console.log('💾 localStorage 데이터 사용:', localData.length, '개');
+          return localData;
+        }); // 오류 시 localStorage 데이터 반환
     }
 
     function buildSidoGugun(list) {
@@ -333,10 +350,14 @@
 
     // ✅ 초기 실행: 지도 + JSON 불러오기
     initMap();
+    console.log('🚀 페이지 로드 시작');
     loadBranches().then(list => {
+      console.log('📊 최종 branches 배열:', list);
+      console.log('📊 branches 개수:', list.length);
       branches = list;
       buildSidoGugun(branches);
       renderList();
+      console.log('✨ renderList 완료');
     });
   });
 </script>
